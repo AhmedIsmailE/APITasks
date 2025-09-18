@@ -35,29 +35,65 @@ namespace API.Infrastructure.Services
             return Categories;
         }
 
-        public Task<Category> GetByIdAsync(int id)
+        public async Task<Category> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            return await _context.Categories.FindAsync(id); // <----- best for primary key search
+            //return await _context.Categories.FirstAsync(c => c.Id == id);
+            //return await _context.Categories.FirstOrDefaultAsync(c => c.Id == id); <----- finidng based on not primary key
+            //return await _context.Categories.SingleAsync(c => c.Id == id);
+            //return await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
+
         }
 
-        public Task<Category> CreateAsync(CategoryDTo category)
+        public async Task<Category> CreateAsync(CategoryDTo category)
         {
-            throw new NotImplementedException();
+            var Category = new Category
+            {
+                Name = category.Name,
+                //Posts = category.Posts
+            };
+            await _context.Categories.AddAsync(Category);
+            await _context.SaveChangesAsync();
+            return Category;
         }
 
-        public Task<bool> UpdateAsync(int id, CategoryDTo category)
+        public async Task<bool> UpdateAsync(int id, CategoryDTo category)
         {
-            throw new NotImplementedException();
+            //var ExistingCategory = await _context.Categories.FindAsync(id);
+            var ExistingCategory = await GetByIdAsync(id);
+            if (ExistingCategory == null)
+            {
+                return false;
+            }
+            ExistingCategory.Name = category.Name;
+            _context.Categories.Update(ExistingCategory);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
-        public Task<bool> UpdateAsync(CategoryDTo category)
+        public async Task<bool> UpdateAsync(CategoryDTo category)
         {
-            throw new NotImplementedException();
+            var ExistingCategory = await GetByIdAsync(category.Id);
+            if (ExistingCategory == null)
+            {
+                return false;
+            }
+            ExistingCategory.Name = category.Name;
+            _context.Categories.Update(ExistingCategory);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
-        public Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            var ExistingCategory = await GetByIdAsync(id);
+            if (ExistingCategory == null)
+            {
+                return false;
+            }
+            _context.Categories.Remove(ExistingCategory);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

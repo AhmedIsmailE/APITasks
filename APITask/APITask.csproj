@@ -18,8 +18,4 @@
     <ProjectReference Include="..\APIStructure\API.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
 </Project>
