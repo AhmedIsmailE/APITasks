@@ -16,8 +16,11 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<APIDbContext>(options =>
 options.UseSqlServer(builder.Configuration.GetConnectionString("API_DBConnection")));
 
-//DI
+//DI life time : addscoped -> jack of all trades singelton -> single non changable transient -> multiple
 builder.Services.AddScoped<ICategoryServices, CategoryServices>();
+
+
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
 var app = builder.Build();
 
