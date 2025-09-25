@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -20,10 +21,10 @@ namespace API.Infrastructure.Services
             _table = _context.Set<Table>();
         }
 
-        public async Task<IEnumerable<Table>> GetAllAsync()
-        {
-            return await _table.ToListAsync();
-        }
+        //public async Task<IEnumerable<Table>> GetAllAsync()
+        //{
+        //    return await _table.ToListAsync();
+        //}
 
         public async Task<Table> GetByIdAsync(int id)
         {
@@ -33,10 +34,10 @@ namespace API.Infrastructure.Services
         {
             await _table.AddAsync(model);
         }
-        public async Task SaveAsync()
-        {
-            await _context.SaveChangesAsync();
-        }
+        //public async Task SaveAsync()
+        //{
+        //    await _context.SaveChangesAsync();
+        //}
 
         public void Update(Table model)
         {
@@ -46,6 +47,28 @@ namespace API.Infrastructure.Services
         public void Delete(Table model)
         {
             _table.Remove(model);
+        }
+
+        public async Task<IEnumerable<Table>> GetAllAsync(
+            Expression<Func<Table, bool>> predicate = null,
+            IEnumerable<Expression<Func<Table, object>>> includes = null)
+        {
+            // select * from table
+            IQueryable<Table> query = _table;
+            // select * from table where (condition)
+            if (predicate is not null)
+            {
+                query = query.Where(predicate);
+            }
+            // handle any includes (sub queries)
+            if (includes is not null)
+            {
+                foreach (var include in includes)
+                {
+                    query.Include(include);
+                }
+            }
+            return await query.ToListAsync();
         }
     }
 }

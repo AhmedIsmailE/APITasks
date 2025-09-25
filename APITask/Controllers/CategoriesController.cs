@@ -11,16 +11,21 @@ namespace APITask.Controllers
     public class CategoriesController : ControllerBase
     {
         // DI
-        public readonly ICategoryServices _categoryServices;
-        public CategoriesController(ICategoryServices categoryServices)
+        //public readonly ICategoryServices _categoryServices;
+        //public CategoriesController(ICategoryServices categoryServices)
+        //{
+        //    _categoryServices = categoryServices;
+        //}
+        private readonly IUnitOfWork _unitOfWork;
+        public CategoriesController(IUnitOfWork unitOfWork)
         {
-            _categoryServices = categoryServices;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var categories = await _categoryServices.GetAllAsync();
+            var categories = await _unitOfWork.CategoryServices.GetAllAsync();
             try
             {
                 if (categories == null || !categories.Any())
@@ -37,7 +42,19 @@ namespace APITask.Controllers
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Categories retrieved successfully",
-                    Data = categories
+                    Data = categories.Select(category => new
+                    {
+                        Id = category.Id,
+                        Name = category.Name,
+                        Posts = category.Posts.Select(post => new{ 
+                            PostId = post.Id,
+                            Title = post.Title,
+                            Content = post.Content,
+                            CreatedAt = post.CreatedAt,
+                            UserId = post.UserId,
+                            UserName = post.User.UserName
+                        })
+                    })
                 });
             }
             catch (Exception ex)
@@ -53,7 +70,7 @@ namespace APITask.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var category = await _categoryServices.GetByIdAsync(id);
+            var category = await _unitOfWork.CategoryServices.GetByIdAsync(id);
             try
             {
                 if (category == null)
@@ -69,7 +86,19 @@ namespace APITask.Controllers
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Category retrieved successfully",
-                    Data = category
+                    Data = new
+                    {
+                        Id = category.Id,
+                        Name = category.Name,
+                        Posts = category.Posts.Select(post => new {
+                            PostId = post.Id,
+                            Title = post.Title,
+                            Content = post.Content,
+                            CreatedAt = post.CreatedAt,
+                            UserId = post.UserId,
+                            UserName = post.User.UserName
+                        })
+                    }
                 });
             }
             catch (Exception ex)
@@ -96,11 +125,23 @@ namespace APITask.Controllers
                         Errors = ModelState.Values.SelectMany(c => c.Errors).Select(e => e.ErrorMessage)
                     });
                 }
-                var Category = await _categoryServices.CreateAsync(categoryDTo);
+                var Category = await _unitOfWork.CategoryServices.CreateAsync(categoryDTo);
                 return StatusCode(StatusCodes.Status201Created, new
                 {
                     Message = "Category created successfully",
-                    Data = Category,
+                    Data = new
+                    {
+                        Id = Category.Id,
+                        Name = Category.Name,
+                        Posts = Category.Posts.Select(post => new {
+                            PostId = post.Id,
+                            Title = post.Title,
+                            Content = post.Content,
+                            CreatedAt = post.CreatedAt,
+                            UserId = post.UserId,
+                            UserName = post.User.UserName
+                        })
+                    },
                     StatusCode = StatusCodes.Status201Created
                 });
             }
@@ -119,7 +160,7 @@ namespace APITask.Controllers
         {
             try
             {
-                var existingCategory = await _categoryServices.GetByIdAsync(id);
+                var existingCategory = await _unitOfWork.CategoryServices.GetByIdAsync(id);
                 if (existingCategory == null)
                 {
                     return BadRequest(new
@@ -128,13 +169,13 @@ namespace APITask.Controllers
                         Message = $"Category with id {id} not found",
                     });
                 }
-                if (await _categoryServices.UpdateAsync(id, categoryDTo))
+                if (await _unitOfWork.CategoryServices.UpdateAsync(id, categoryDTo))
                 {
                     return Ok(new
                     {
                         StatusCode = StatusCodes.Status200OK,
                         Message = "Category updated successfully",
-                        Data = await _categoryServices.GetByIdAsync(id)
+                        Data = await _unitOfWork.CategoryServices.GetByIdAsync(id)
                     });
                 }
                 else
@@ -161,7 +202,7 @@ namespace APITask.Controllers
         {
             try
             {
-                var existingCategory = await _categoryServices.GetByIdAsync(categoryDTo.Id);
+                var existingCategory = await _unitOfWork.CategoryServices.GetByIdAsync(categoryDTo.Id);
                 if (existingCategory == null)
                 {
                     return BadRequest(new
@@ -170,13 +211,13 @@ namespace APITask.Controllers
                         Message = $"Category with id {categoryDTo.Id} not found",
                     });
                 }
-                if (await _categoryServices.UpdateAsync(categoryDTo))
+                if (await _unitOfWork.CategoryServices.UpdateAsync(categoryDTo))
                 {
                     return Ok(new
                     {
                         StatusCode = StatusCodes.Status200OK,
                         Message = "Category updated successfully",
-                        Data = await _categoryServices.GetByIdAsync(categoryDTo.Id)
+                        Data = await _unitOfWork.CategoryServices.GetByIdAsync(categoryDTo.Id)
                     });
                 }
                 else
@@ -203,7 +244,7 @@ namespace APITask.Controllers
         {
             try
             {
-                var existingCategory = await _categoryServices.GetByIdAsync(id);
+                var existingCategory = await _unitOfWork.CategoryServices.GetByIdAsync(id);
                 if (existingCategory == null)
                 {
                     return NotFound(new
@@ -212,12 +253,24 @@ namespace APITask.Controllers
                         Message = $"Category with id {id} not found",
                     });
                 }
-                if (await _categoryServices.DeleteAsync(id))
+                if (await _unitOfWork.CategoryServices.DeleteAsync(id))
                 {
                     return Ok(new
                     {
                         StatusCode = StatusCodes.Status200OK,
-                        Data = existingCategory,
+                        Data =new
+                        {
+                            Id = existingCategory.Id,
+                            Name = existingCategory.Name,
+                            Posts = existingCategory.Posts.Select(post => new {
+                                PostId = post.Id,
+                                Title = post.Title,
+                                Content = post.Content,
+                                CreatedAt = post.CreatedAt,
+                                UserId = post.UserId,
+                                UserName = post.User.UserName
+                            })
+                        },
                         Message = "Category deleted successfully"
                     });
                 }

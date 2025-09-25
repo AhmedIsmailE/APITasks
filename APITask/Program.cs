@@ -1,6 +1,8 @@
 using API.Core.Interfaces;
+using API.Core.Models;
 using API.Infrastructure.Data;
 using API.Infrastructure.Services;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,13 +16,20 @@ builder.Services.AddSwaggerGen();
 
 // DB Connection
 builder.Services.AddDbContext<APIDbContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("API_DBConnection")));
+options
+ //.UseLazyLoadingProxies() // must use virtual for all data accessed
+.UseSqlServer(builder.Configuration.GetConnectionString("API_DBConnection")));
 
-//DI life time : addscoped -> jack of all trades singelton -> single non changable transient -> multiple
-builder.Services.AddScoped<ICategoryServices, CategoryServices>();
+// add identity
+builder.Services.AddIdentity<User, IdentityRole>().AddEntityFrameworkStores<APIDbContext>();
 
+//DI life time : addscoped -> jack of all trades, singelton -> single non changable, transient -> multiple
+//builder.Services.AddScoped<ICategoryServices, CategoryServices>();
 
-builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+//builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 
 var app = builder.Build();
 

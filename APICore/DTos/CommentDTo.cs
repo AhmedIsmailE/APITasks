@@ -17,10 +17,7 @@ namespace API.Core.DTos
         public string Content { get; set; }
 
         public int PostId { get; set; }
-
-
-       
-        public int UserId { get; set; }
+        public string UserId { get; set; }
 
     }
 }

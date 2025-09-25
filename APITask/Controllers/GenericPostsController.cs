@@ -4,6 +4,7 @@ using API.Core.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
+using System.Linq.Expressions;
 
 namespace APITask.Controllers
 {
@@ -12,17 +13,22 @@ namespace APITask.Controllers
     public class GenericPostsController : ControllerBase
     {
         // DI
-        private readonly IGenericRepository<Post> _post;
-        public GenericPostsController(IGenericRepository<Post> post)
+        //private readonly IGenericRepository<Post> _post;
+        //public GenericPostsController(IGenericRepository<Post> post)
+        //{
+        //    _post = post;
+        //}
+        private readonly IUnitOfWork _unitOfWork;
+        public GenericPostsController(IUnitOfWork unitOfWork)
         {
-            _post = post;
+            _unitOfWork = unitOfWork;
         }
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             try
             {
-                var posts = await _post.GetAllAsync();
+                var posts = await _unitOfWork.Posts.GetAllAsync();
                 if (posts is null || !posts.Any())
                 {
                     return NotFound(new
@@ -36,7 +42,24 @@ namespace APITask.Controllers
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Posts retrieved successfully",
-                    Data = posts
+                    Data = posts.Select(post => new
+                    {
+                        Id = post.Id,
+                        Title = post.Title,
+                        Content = post.Content,
+                        CreatedAt = post.CreatedAt,
+                        CategoryName = post.Category.Name,
+                        UserId = post.UserId,
+                        UserName = post.User.UserName,
+                        Comments = post.Comments.Select(comment => new
+                        {
+                            Id = comment.Id,
+                            Content = comment.Content,
+                            CreatedAt = comment.CreatedAt,
+                            UserId = comment.UserId,
+                            Username = comment.User.UserName
+                        })
+                    })
                 });
 
             }
@@ -51,12 +74,73 @@ namespace APITask.Controllers
 
             }
         }
+
+        [HttpGet("NewAll")]
+        public async Task<IActionResult> GetAll2()
+        {
+            try
+            {
+                var posts = await _unitOfWork.Posts.GetAllAsync(
+                    //predicate: p => p.CategoryId == 2
+                   includes: new Expression<Func<Post,Object>>[]
+                   {
+                       p => p.Comments,
+                       P => P.User,
+                       p => p.Category
+                   }
+                    );
+                if (posts is null || !posts.Any())
+                {
+                    return NotFound(new
+                    {
+                        StatusCode = StatusCodes.Status404NotFound,
+                        Message = "No posts found",
+                        Data = new List<Post>()
+                    });
+                }
+                return Ok(new
+                {
+                    StatusCode = StatusCodes.Status200OK,
+                    Message = "Posts retrieved successfully",
+                    Data = posts.Select(post => new
+                    {
+                        Id = post.Id,
+                        Title = post.Title,
+                        Content = post.Content,
+                        CreatedAt = post.CreatedAt,
+                        CategoryName = post.Category.Name,
+                        UserId = post.UserId,
+                        UserName = post.User.UserName,
+                        Comments = post.Comments.Select(comment => new
+                        {
+                            Id = comment.Id,
+                            Content = comment.Content,
+                            CreatedAt = comment.CreatedAt,
+                            UserId = comment.UserId,
+                            //Username = comment.User.UserName
+                        })
+                    })
+                });
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    StatusCode = StatusCodes.Status500InternalServerError,
+                    Message = "An error occurred while retrieving posts",
+                    Error = ex.Message
+                });
+
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
             try
             {
-                var post = await _post.GetByIdAsync(id);
+                var post = await _unitOfWork.Posts.GetByIdAsync(id);
                 if (post is null)
                 {
                     return NotFound(new
@@ -69,7 +153,24 @@ namespace APITask.Controllers
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Post retrieved successfully",
-                    Data = post
+                    Data = new
+                    {
+                        Id = post.Id,
+                        Title = post.Title,
+                        Content = post.Content,
+                        CreatedAt = post.CreatedAt,
+                        CategoryName = post.Category.Name,
+                        UserId = post.UserId,
+                        UserName = post.User.UserName,
+                        Comments = post.Comments.Select(comment => new
+                        {
+                            Id = comment.Id,
+                            Content = comment.Content,
+                            CreatedAt = comment.CreatedAt,
+                            UserId = comment.UserId,
+                            Username = comment.User.UserName
+                        })
+                    }
                 });
             }
             catch (Exception ex)
@@ -104,8 +205,8 @@ namespace APITask.Controllers
                     Content = post.Content,
                     UserId = post.UserId,
                 };
-                await _post.CreateAsync(Post);
-                await _post.SaveAsync();
+                await _unitOfWork.Posts.CreateAsync(Post);
+                await _unitOfWork.SaveAsync();
                 return Ok(new
                 {
                     Messege = "Post created successfully",
@@ -137,7 +238,7 @@ namespace APITask.Controllers
                         Errors = ModelState.Values.SelectMany(c => c.Errors).Select(e => e.ErrorMessage)
                     });
                 }
-                var oldPost = await _post.GetByIdAsync(postDTo.UserId);
+                var oldPost = await _unitOfWork.Posts.GetByIdAsync(int.Parse(postDTo.UserId));
                 if (oldPost == null)
                 {
                     return NotFound(new
@@ -149,8 +250,8 @@ namespace APITask.Controllers
                 oldPost.CategoryId = postDTo.CategoryId;
                 oldPost.Content = postDTo.Content;
                 oldPost.Title = postDTo.Title;
-                _post.Update(oldPost);
-                await _post.SaveAsync();
+                _unitOfWork.Posts.Update(oldPost);
+                await _unitOfWork.SaveAsync();
                 return Ok(new
                 {
                     Messege = "Post Updated successfully",
@@ -173,7 +274,7 @@ namespace APITask.Controllers
         {
             try
             {
-                var post = await _post.GetByIdAsync(id);
+                var post = await _unitOfWork.Posts.GetByIdAsync(id);
                 if (post is null)
                 {
                     return NotFound(new
@@ -182,8 +283,8 @@ namespace APITask.Controllers
                         Message = $"Post with ID {id} not found",
                     });
                 }
-                _post.Delete(post);
-                await _post.SaveAsync();
+                _unitOfWork.Posts.Delete(post);
+                await _unitOfWork.SaveAsync();
                 return Ok(new
                 {
                     StatusCode = StatusCodes.Status200OK,

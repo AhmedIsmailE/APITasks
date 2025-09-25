@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace API.Infrastructure.Services
 {
     public class CategoryServices : ICategoryServices
-    {   
+    {
         // dependancy injection use the ability of one class in another one
         private readonly APIDbContext _context;
         public CategoryServices(APIDbContext context)
@@ -23,7 +23,10 @@ namespace API.Infrastructure.Services
 
         public async Task<IEnumerable<Category>> GetAllAsync()
         {
-            var Categories = await _context.Categories.ToListAsync();
+            var Categories = await _context.Categories
+                .Include(c => c.Posts)     // Left join
+                .ThenInclude(p => p.User) // subquery with inner join
+                .ToListAsync();
             //var Categories = _context.Categories.Select(c => new Category
             //{
             //    Name = c.Name,
@@ -42,7 +45,10 @@ namespace API.Infrastructure.Services
             //return await _context.Categories.FirstOrDefaultAsync(c => c.Id == id); <----- finidng based on not primary key
             //return await _context.Categories.SingleAsync(c => c.Id == id);
             //return await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
-
+            // Explicit loading:
+            //var Category = await _context.Categories.FindAsync(id);
+            //await _context.Entry(Category).Collection(c => c.Posts).LoadAsync();
+            //return Category;
         }
 
         public async Task<Category> CreateAsync(CategoryDTo category)

@@ -1,4 +1,5 @@
 ﻿using API.Core.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace API.Infrastructure.Data
 {
-    public class APIDbContext : DbContext
+    public class APIDbContext : IdentityDbContext<User>
     {
         public APIDbContext(DbContextOptions<APIDbContext> options) : base(options)
         {

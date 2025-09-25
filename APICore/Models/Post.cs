@@ -24,13 +24,13 @@ namespace API.Core.Models
         // Relations
         // userid
         [ForeignKey("User")]
-        public int UserId { get; set; }
-        public User User { get; set; }
+        public string UserId { get; set; }
+        public virtual User User { get; set; }
         // categoryid
         [ForeignKey("Category")]
         public int CategoryId { get; set; }
-        public Category Category { get; set; }
+        public virtual Category Category { get; set; }
 
-        public ICollection<Comment> Comments { get; set; } = new List<Comment>();   
+        public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();   
     }
 }

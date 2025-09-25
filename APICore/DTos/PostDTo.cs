@@ -18,7 +18,7 @@ namespace API.Core.DTos
         [Required(ErrorMessage = "Content is required")]
         [StringLength(400, MinimumLength = 20)]
         public string Content { get; set; }
-        public int UserId { get; set; }
+        public string UserId { get; set; }
         public int CategoryId { get; set; }
 
     }

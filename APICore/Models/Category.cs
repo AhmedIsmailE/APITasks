@@ -15,7 +15,7 @@ namespace API.Core.Models
         public string Name { get; set; }
 
         // Relations
-        public ICollection<Post> Posts { get; set; } = new List<Post>();
+        public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
 
     }
 }

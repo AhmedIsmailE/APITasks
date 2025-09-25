@@ -13,18 +13,22 @@ namespace APITask.Controllers
     public class GenericCommentsController : ControllerBase
     {
         // DI
-        private readonly IGenericRepository<Comment> _comment;
-        public GenericCommentsController(IGenericRepository<Comment> comment)
+        //private readonly IGenericRepository<Comment> _comment;
+        //public GenericCommentsController(IGenericRepository<Comment> comment)
+        //{
+        //    _comment = comment;
+        //}
+        private readonly IUnitOfWork _unitOfWork;
+        public GenericCommentsController(IUnitOfWork unitOfWork)
         {
-            _comment = comment;
+            _unitOfWork = unitOfWork;
         }
-
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             try
             {
-                var comments = await _comment.GetAllAsync();
+                var comments = await _unitOfWork.Comments.GetAllAsync();
                 if (comments is null || !comments.Any())
                 {
                     return NotFound(new
@@ -39,6 +43,16 @@ namespace APITask.Controllers
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Comments retrieved successfully",
                     Data = comments
+                    .Select(c => new
+                    {
+                        Id = c.Id,
+                        Content = c.Content,
+                        CreatedAt = c.CreatedAt,
+                        PostId = c.PostId,
+                        PostTitle = c.Post.Title,
+                        UserId = c.UserId,
+                        Username = c.User.UserName
+                    })
                 });
 
             }
@@ -58,7 +72,7 @@ namespace APITask.Controllers
         {
             try
             {
-                var comment = await _comment.GetByIdAsync(id);
+                var comment = await _unitOfWork.Comments.GetByIdAsync(id);
                 if (comment is null)
                 {
                     return NotFound(new
@@ -71,7 +85,16 @@ namespace APITask.Controllers
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Comment retrieved successfully",
-                    Data = comment
+                    Data = new
+                    {
+                        Id = comment.Id,
+                        Content = comment.Content,
+                        CreatedAt = comment.CreatedAt,
+                        PostId = comment.PostId,
+                        PostTitle = comment.Post.Title,
+                        UserId = comment.UserId,
+                        Username = comment.User.UserName
+                    }
                 });
             }
             catch (Exception ex)
@@ -105,8 +128,8 @@ namespace APITask.Controllers
                     Content = commentDTo.Content,
                     UserId = commentDTo.UserId,
                 };
-                await _comment.CreateAsync(comment);
-                await _comment.SaveAsync();
+                await _unitOfWork.Comments.CreateAsync(comment);
+                await _unitOfWork.SaveAsync();
                 return Ok(new
                 {
                     Messege = "Comment created successfully",
@@ -138,7 +161,7 @@ namespace APITask.Controllers
                         Errors = ModelState.Values.SelectMany(c => c.Errors).Select(e => e.ErrorMessage)
                     });
                 }
-                var oldComment = await _comment.GetByIdAsync(CommentDTo.UserId);
+                var oldComment = await _unitOfWork.Comments.GetByIdAsync(int.Parse(CommentDTo.UserId));
                 if (oldComment == null)
                 {
                     return NotFound(new
@@ -149,8 +172,8 @@ namespace APITask.Controllers
                 }
                 oldComment.Content = CommentDTo.Content;
                 
-                _comment.Update(oldComment);
-                await _comment.SaveAsync();
+                _unitOfWork.Comments.Update(oldComment);
+                await _unitOfWork.SaveAsync();
                 return Ok(new
                 {
                     Messege = "Comment Updated successfully",
@@ -173,7 +196,7 @@ namespace APITask.Controllers
         {
             try
             {
-                var comment = await _comment.GetByIdAsync(id);
+                var comment = await _unitOfWork.Comments.GetByIdAsync(id);
                 if (comment is null)
                 {
                     return NotFound(new
@@ -182,8 +205,8 @@ namespace APITask.Controllers
                         Message = $"Comment with ID {id} not found",
                     });
                 }
-                _comment.Delete(comment);
-                await _comment.SaveAsync();
+                _unitOfWork.Comments.Delete(comment);
+                await _unitOfWork.SaveAsync();
                 return Ok(new
                 {
                     StatusCode = StatusCodes.Status200OK,

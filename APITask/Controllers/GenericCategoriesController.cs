@@ -11,16 +11,21 @@ namespace APITask.Controllers
     [ApiController]
     public class GenericCategoriesController : ControllerBase
     {
-        public readonly IGenericRepository<Category> _category;
-        public GenericCategoriesController(IGenericRepository<Category> category)
+        //public readonly IGenericRepository<Category> _category;
+        //public GenericCategoriesController(IGenericRepository<Category> category)
+        //{
+        //    _category = category;
+        //}
+        private readonly IUnitOfWork _unitOfWork;
+        public GenericCategoriesController(IUnitOfWork unitOfWork)
         {
-            _category = category;
+            _unitOfWork = unitOfWork;
         }
         [HttpGet]
         public async Task <IActionResult> GetAll() {
             try
             {
-                var categories = await _category.GetAllAsync();
+                var categories = await _unitOfWork.Categories.GetAllAsync();
                 if (categories is null || !categories.Any())
                 {
                     return NotFound(new
@@ -34,7 +39,20 @@ namespace APITask.Controllers
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Categories retrieved successfully",
-                    Data = categories
+                    Data = categories.Select(category => new 
+                    {
+                        Id = category.Id,
+                        Name = category.Name,
+                        Posts = category.Posts.Select(post => new
+                        {
+                            PostId = post.Id,
+                            Title = post.Title,
+                            Content = post.Content,
+                            CreatedAt = post.CreatedAt,
+                            UserId = post.UserId,
+                            UserName = post.User.UserName
+                        })
+                        })
                 });
 
             }
@@ -53,7 +71,7 @@ namespace APITask.Controllers
         public async Task<IActionResult> GetByIdAsync(int id) {
             try
             {
-                var category = await _category.GetByIdAsync(id);
+                var category = await _unitOfWork.Categories.GetByIdAsync(id);
                 if (category is null)
                 {
                     return NotFound(new
@@ -66,7 +84,20 @@ namespace APITask.Controllers
                 {
                     StatusCode = StatusCodes.Status200OK,
                     Message = "Category retrieved successfully",
-                    Data = category
+                    Data = new
+                    {
+                        Id = category.Id,
+                        Name = category.Name,
+                        Posts = category.Posts.Select(post => new
+                        {
+                            PostId = post.Id,
+                            Title = post.Title,
+                            Content = post.Content,
+                            CreatedAt = post.CreatedAt,
+                            UserId = post.UserId,
+                            UserName = post.User.UserName
+                        })
+                    }
                 });
             }
             catch (Exception ex)
@@ -88,8 +119,8 @@ namespace APITask.Controllers
                 {
                     Name = category.Name,
                 };
-                await _category.CreateAsync(Category);
-                await _category.SaveAsync();
+                await _unitOfWork.Categories.CreateAsync(Category);
+                await _unitOfWork.SaveAsync();
                 return StatusCode(201, new
                 {
                     Message = "Category created successfully",
